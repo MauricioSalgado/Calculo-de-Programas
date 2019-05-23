@@ -956,6 +956,16 @@ ex3Caixas = G.display (G.InWindow "Problema 4" (400, 400) (40, 40)) G.white mtes
           ybox2 = Unid ((100,300),("H",G.yellow))
           bot = Comp Hb wbox1 bbox2
           top = (Comp Ve (Comp Hb bbox1 gbox1) (Comp Hb rbox1 (Comp H ybox1 rbox2)))
+
+myL2D = (Comp Ve (Comp Hb bbox1 gbox1) (Comp Hb rbox1 (Comp H ybox1 rbox2))) where
+  bbox1 = Unid ((100,200),("A",col_blue))
+  gbox1 = Unid ((50,50),("B",col_green))
+  rbox1 = Unid ((300,50),("C",G.red))
+  rbox2 = Unid ((200,100),("G",G.red))
+  ybox1 = Unid ((100,200),("D",G.yellow))
+
+myL2D2 = (Comp Hb (Unid ((100,200),("A",col_blue))) (Unid ((50,50),("B",col_green))))
+
 \end{code}
 A seguinte função cria uma caixa a partir dos seguintes parâmetros: origem,
 largura, altura, etiqueta e côr de preenchimento.
@@ -1139,6 +1149,10 @@ recExpr f = baseExpr id f
 
 cataExpr g = g . recExpr(cataExpr g) . outExpr
 
+mapExpr f g = cataExpr(inExpr . baseExpr f g)
+
+anaExpr g = inExpr . recExpr(anaExpr g) . g
+
 calcula :: Expr -> Int
 calcula = cataExpr(either id mycalc)
 
@@ -1150,12 +1164,23 @@ mycalc (Op op, x) | op == "+" = fromIntegral $ add $ toInt x
 
 toInt (x,y) = (toInteger x, toInteger y)
 
+auxShow1 (Op op, (x,y)) = "("++x++op++y++")"
+
 auxShow' (Op op, (x,y)) | length(readBinOp x) == 0 && length(readBinOp y) == 0 = x++op++y
                         | length(readBinOp x) == 0 && length(readBinOp y) /= 0 = x++op++"("++y++")"
                         | length(readBinOp x) /= 0 && length(readBinOp y) == 0 = "("++x++")"++op++y
                         | length(readBinOp x) /= 0 && length(readBinOp y) /= 0 = "("++x++")"++op++"("++y++")"
 
-show' = cataExpr(either show auxShow')
+auxInt' x | x >= 0 = show x
+          | otherwise = "("++(show x)++")"
+
+show' = cataExpr(either auxInt' auxShow')
+
+--readExp' = anaExpr g
+cose' x = prj . for loop init where
+  init = (1, -x^2 / 2, 12, 18)
+  loop(c,h,s,m) = (h + c, -x^2 / s * h, s + m, 8 + m)
+  prj(c,h,s,m) = c
 
 compile :: String -> Codigo
 compile = undefined
@@ -1164,19 +1189,32 @@ compile = undefined
 \subsection*{Problema 2}
 
 \begin{code}
+
+uncurryL2D f (b, (x1, x2)) = f b x1 x2
+
 inL2D :: Either a (b, (X a b,X a b)) -> X a b
-inL2D = undefined
+inL2D = either Unid $uncurryL2D Comp
 
 outL2D :: X a b -> Either a (b, (X a b,X a b))
-outL2D = undefined
+outL2D (Unid x) = i1 x
+outL2D (Comp t x1 x2) = i2 (t,(x1,x2))
 
-recL2D f = undefined
+baseL2D f g = id -|- f >< (g >< g)
 
-cataL2D g = undefined
+recL2D f = baseL2D id f
 
-anaL2D g = undefined
+cataL2D g = g . recL2D(cataL2D g) . outL2D
+
+anaL2D g = inL2D . recL2D(anaL2D g) . g
+
+hyloL2D f g = cataL2D f . anaL2D g
 
 collectLeafs = undefined
+
+mapCaixa f = cataL2D(inL2D . (f -|- id >< (id >< id)))
+
+mapTipos f = cataL2D(inL2D . (id -|- f >< (id >< id)))
+
 
 dimen :: X Caixa Tipo -> (Float, Float)
 dimen = undefined
@@ -1187,6 +1225,13 @@ calcOrigins = undefined
 calc :: Tipo -> Origem -> (Float, Float) -> Origem
 calc = undefined
 
+auxNil x = ()
+
+myimage = ((Comp "TIPO1" (Unid ((200,200),("yo", "1"))) (Unid ((300,400),("man", "2")))) , (0.0,0.0))
+
+cenas = distl . (outL2D >< id)
+
+
 caixasAndOrigin2Pict = undefined
 \end{code}
 
@@ -1194,10 +1239,11 @@ caixasAndOrigin2Pict = undefined
 Solução:
 \begin{code}
 cos' x = prj . for loop init where
-   loop = undefined
-   init = undefined
-   prj = undefined
+   loop(c,h,s,m) = (h + c, -x^2 / s * h, s + m, 8 + m)
+   init = (1, -x^2 / 2, 12, 18)
+   prj(c,h,s,m) = c
 \end{code}
+
 
 \subsection*{Problema 4}
 Triologia ``ana-cata-hilo":
