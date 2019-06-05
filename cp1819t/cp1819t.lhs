@@ -1,4 +1,4 @@
-  \documentclass[a4paper]{article}
+\documentclass[a4paper]{article}
 \usepackage[a4paper,left=3cm,right=2cm,top=2.5cm,bottom=2.5cm]{geometry}
 \usepackage{palatino}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue]{hyperref}
@@ -384,7 +384,7 @@ O que a linguagem |L2D| faz é agregar tais caixas tipográficas
 umas com as outras segundo padrões especificados por vários
 \aspas{tipos}, a saber,
 \begin{code}
-data Tipo = V | Vd | Ve | H | Ht | Hb
+data Tipo = V | Vd | Ve | H | Ht | Hb deriving Show
 \end{code}
 com o seguinte significado:
 \begin{itemize}
@@ -589,7 +589,7 @@ type Path a = [a]
 \end{code}
 Assumindo estes tipos de dados, o seguinte termo
 \begin{spec}
-FS [("f1", File "Ola"),
+ FS [("f1", File "Ola"),
     ("d1", Dir (FS [("f2", File "Ole"),
                     ("f3", File "Ole")
                    ]))
@@ -943,27 +943,49 @@ ex2Caixas =  G.display (G.InWindow "Problema 4" (400, 400) (40, 40)) G.white $
           bbox = Unid ((100,200),("A",col_blue))
           gbox = Unid ((50,50),("B",col_green))
 
+binoTest =  G.display (G.InWindow "Problema 4" (400, 400) (40, 40)) G.white $
+          caixasAndOrigin2Pict ((Comp Ht rbox1 (Comp Hb ybox1 rbox2)),(0.0,0.0)) where
+          rbox1 = Unid ((300,50),("C",G.red))
+          ybox1 = Unid ((100,200),("D",G.yellow))
+          rbox2 = Unid ((200,100),("G",G.red))
+
 ex3Caixas = G.display (G.InWindow "Problema 4" (400, 400) (40, 40)) G.white mtest where
-          mtest = caixasAndOrigin2Pict $ (Comp Hb (Comp Ve bot top) (Comp Ve gbox2 ybox2), (0.0,0.0))
+          mtest = caixasAndOrigin2Pict $ (Comp Ht (Comp Ve bot top) (Comp Ve gbox2 ybox2), (0.0,0.0))
           bbox1 = Unid ((100,200),("A",col_blue))
           bbox2 = Unid ((150,200),("E",col_blue))
           gbox1 = Unid ((50,50),("B",col_green))
           gbox2 = Unid ((100,300),("F",col_green))
           rbox1 = Unid ((300,50),("C",G.red))
           rbox2 = Unid ((200,100),("G",G.red))
-          wbox1 = Unid ((450,200),("",G.white))
+          wbox1 = Unid ((450,200),("Easy",G.white))
           ybox1 = Unid ((100,200),("D",G.yellow))
           ybox2 = Unid ((100,300),("H",G.yellow))
           bot = Comp Hb wbox1 bbox2
-          top = (Comp Ve (Comp Hb bbox1 gbox1) (Comp Hb rbox1 (Comp H ybox1 rbox2)))
+          top = (Comp Ve (Comp Hb bbox1 gbox1) (Comp Hb rbox1 (Comp Ht ybox1 rbox2)))
 
-myL2D = (Comp Ve (Comp Hb bbox1 gbox1) (Comp Hb rbox1 (Comp H ybox1 rbox2))) where
-  bbox1 = Unid ((100,200),("A",col_blue))
-  gbox1 = Unid ((50,50),("B",col_green))
-  rbox1 = Unid ((300,50),("C",G.red))
-  rbox2 = Unid ((200,100),("G",G.red))
-  ybox1 = Unid ((100,200),("D",G.yellow))
+coutinho = G.display (G.InWindow "Problema 4" (400, 400) (40, 40)) G.white mtest where
+          mtest = caixasAndOrigin2Pict $ (Comp Ht (Comp Ve bot top) (Comp Ve f h), (0.0,0.0))
+          a = Unid ((100,200),("A",col_blue))
+          e = Unid ((150,200),("E",col_blue))
+          b = Unid ((50,50),("B",col_green))
+          f = Unid ((100,300),("F",col_green))
+          c = Unid ((300,50),("C",G.red))
+          g = Unid ((200,100),("G",G.red))
+          wbox1 = Unid ((450,200),("BINO",G.red))
+          d = Unid ((100,200),("D",G.yellow))
+          h = Unid ((100,300),("H",G.yellow))
+          bot = Comp Hb wbox1 e
+          top = (Comp Ve (Comp Hb a b) (Comp Hb c (Comp H d g)))
 
+myL2D :: L2D
+myL2D = (Comp Hb (Comp Hb a b) (Comp Hb c d)) where
+  a = Unid ((100,200),("A",col_blue))
+  b = Unid ((50,50),("B",col_green))
+  c = Unid ((200,100),("G",G.red))
+  d = Unid ((100,200),("D",G.yellow))
+
+
+myL2D2 :: L2D
 myL2D2 = (Comp Hb (Unid ((100,200),("A",col_blue))) (Unid ((50,50),("B",col_green))))
 
 \end{code}
@@ -1209,30 +1231,66 @@ anaL2D g = inL2D . recL2D(anaL2D g) . g
 
 hyloL2D f g = cataL2D f . anaL2D g
 
-collectLeafs = undefined
+collectLeafs = cataL2D (either (singl . swap) (conc . p2))
 
 mapCaixa f = cataL2D(inL2D . (f -|- id >< (id >< id)))
 
 mapTipos f = cataL2D(inL2D . (id -|- f >< (id >< id)))
 
+mapL2D f = cataL2D(inL2D . baseL2D f id)
 
 dimen :: X Caixa Tipo -> (Float, Float)
-dimen = undefined
+dimen = cataL2D(either ((fromIntegral >< fromIntegral) . p1) (uncurry calcul))
+
+
+calcul :: Tipo -> ((Float, Float),(Float, Float)) -> (Float, Float)
+calcul H ((x1,y1),(x2,y2)) = (x1+x2, max y1 y2)
+calcul Hb ((x1,y1),(x2,y2)) = (x1+x2, max y1 y2)
+calcul Ht ((x1,y1),(x2,y2)) = (x1+x2, max y1 y2)
+calcul V ((x1,y1),(x2,y2)) = (max x1 x2, y1+y2)
+calcul Ve ((x1,y1),(x2,y2)) = (max x1 x2, y1+y2)
+calcul Vd ((x1,y1),(x2,y2)) = (max x1 x2, y1+y2)
 
 calcOrigins :: ((X Caixa Tipo),Origem) -> X (Caixa,Origem) ()
-calcOrigins = undefined
+calcOrigins = anaL2D ((id -|- k) . distl  . (outL2D >< id)) where
+   k = split ((!) . p1 . p1) (uncurry $ uncurry alpha)
+
+alpha :: Tipo -> (L2D,L2D) -> Origem -> ((L2D,Origem),(L2D, Origem))
+alpha Ve (t,t') (x,y) = let ((x1,y1),(x2,y2)) = (dimen t, dimen t') in ((t,(x,y)),(t',(x,y+y1)))
+alpha Hb (t,t') (x,y) = let ((x1,y1),(x2,y2)) = (dimen t, dimen t') in ((t,(x,y)),(t',(x1+x,y)))
+alpha Ht (t,t') (x,y) = let (d1,d2) = (dimen t, dimen t') in alphaHt (maiorDimen d1 d2) (t,t') (x,y)
+alpha Vd (t,t') (x,y) = let (d1,d2) = (dimen t, dimen t') in alphaVd (maiorDimen d1 d2) (t,t') (x,y)
+alpha H (t,t') (x,y) = let (d1,d2) = (dimen t, dimen t') in alphaH (maiorDimen d1 d2) (t,t') (x,y)
+alpha V (t,t') (x,y) = let (d1,d2) = (dimen t, dimen t') in alphaV (maiorDimen d1 d2) (t,t') (x,y)
+
+alphaHt :: Bool -> (L2D,L2D) -> Origem -> ((L2D,Origem),(L2D,Origem))
+alphaHt True (t,t') (x,y) = let ((x1,y1),(x2,y2)) = (dimen t, dimen t') in ((t,(x,y)),(t',(x+x1,y+(y1-y2))))
+alphaHt False (t,t') (x,y) = let ((x1,y1),(x2,y2)) = (dimen t, dimen t') in ((t,(x,y2-y1)),(t',(x+x1,y)))
+
+alphaVd :: Bool -> (L2D,L2D) -> Origem -> ((L2D,Origem),(L2D,Origem))
+alphaVd True (t,t') (x,y) = let ((x1,y1),(x2,y2)) = (dimen t, dimen t') in ((t,(x,y)),(t',(x1-x2,y1)))
+alphaVd False (t,t') (x,y) = let ((x1,y1),(x2,y2)) = (dimen t, dimen t') in ((t,(x2-x1,y)),(t',(x,y1)))
+
+alphaH :: Bool -> (L2D,L2D) -> Origem -> ((L2D,Origem),(L2D,Origem))
+alphaH True (t,t') (x,y) = let ((x1,y1),(x2,y2)) = (dimen t, dimen t') in ((t,(x,y)),(t',(x+x1,(y1/2)-(y2/2)+y)))
+alphaH False (t,t') (x,y) = let ((x1,y1),(x2,y2)) = (dimen t, dimen t') in ((t,(x,(y2/2)-(y1/2)+y)),(t',(x1,y)))
+
+alphaV :: Bool -> (L2D,L2D) -> Origem -> ((L2D,Origem),(L2D,Origem))
+alphaV True (t,t') (x,y) = let ((x1,y1),(x2,y2)) = (dimen t, dimen t') in ((t,(x,y)),(t',((x1/2)-(x2/2)+x,y1)))
+alphaV False (t,t') (x,y) = let ((x1,y1),(x2,y2)) = (dimen t, dimen t') in ((t,((x2/2)-(x1/2)+x,y)),(t',(x,y1+y)))
+
+maiorDimen :: (Float, Float) -> (Float, Float) -> Bool
+maiorDimen (a,b) (c,d) = if (a+b) >= (c+d) then True else False
 
 calc :: Tipo -> Origem -> (Float, Float) -> Origem
 calc = undefined
 
-auxNil x = ()
+myimage :: (L2D,Origem)
+myimage = ((Comp Hb (Unid ((200,200),("yo", col_blue))) (Unid ((300,400),("man", col_green)))) , (0.0,0.0))
 
-myimage = ((Comp "TIPO1" (Unid ((200,200),("yo", "1"))) (Unid ((300,400),("man", "2")))) , (0.0,0.0))
-
-cenas = distl . (outL2D >< id)
-
-
-caixasAndOrigin2Pict = undefined
+caixasAndOrigin2Pict = (G.pictures) . map (parseCrCaixa . (id >< caixaToFloat)) . collectLeafs . calcOrigins where
+   caixaToFloat ((x,y),(t, c)) = ((fromIntegral x, fromIntegral y),(t, c))
+   parseCrCaixa (o,((x,y),(t, c))) = crCaixa o x y t c
 \end{code}
 
 \subsection*{Problema 3}
@@ -1248,35 +1306,58 @@ cos' x = prj . for loop init where
 \subsection*{Problema 4}
 Triologia ``ana-cata-hilo":
 \begin{code}
-outFS (FS l) = undefined
-outNode = undefined
 
-baseFS f g h = undefined
+filesys = FS [("f1", File "Ola"),
+   ("d1", Dir (FS [("f2", File "Ole"),
+                   ("f3", File "Ole")
+                  ])),
+                  ("d1", Dir(FS [("d5", Dir(FS [("f6", File "TESTE")]))]))
+  ]
+
+outFS (FS l) = map(id >< outNode) l
+
+outNode (File b) = i1 b
+outNode (Dir fs) = i2 fs
+
+baseFS f g h = map(f >< (g -|- h))
 
 cataFS :: ([(a, Either b c)] -> c) -> FS a b -> c
-cataFS g = undefined
+cataFS g = g . recFS(cataFS g) . outFS
 
 anaFS :: (c -> [(a, Either b c)]) -> c -> FS a b
-anaFS g = undefined
+anaFS g = inFS . recFS(anaFS g) . g
 
-hyloFS g h = undefined
+hyloFS g h = cataFS g . anaFS h
+
 \end{code}
 Outras funções pedidas:
 \begin{code}
 check :: (Eq a) => FS a b -> Bool
-check = undefined
+check = cataFS(g)
+  where
+      g = unc . ((not . nr) >< cataList(either false unc)) . (split (map(p1)) (map((either false id) . p2)))
+      unc = uncurry(||)
 
 tar :: FS a b -> [(Path a, b)]
-tar = undefined
+tar = cataFS(g)
+  where
+    g = concat . map((either (singl . (singl >< id)) dir) . distr)
+    dir (x,y) = map((x:) >< id) y
 
 untar :: (Eq a) => [(Path a, b)] -> FS a b
-untar = undefined
+untar = joinDupDirs. anaFS(map g)
+  where
+    g (x,y) | length(x) == 1 = (head(x), i1(y))
+            | otherwise = (head(x), i2(singl((tail(x), y))))
 
 find :: (Eq a) => a -> FS a b -> [Path a]
-find = undefined
+find x y =  filter(\z -> last z == x ). map(p1) $ tar y
 
 new :: (Eq a) => Path a -> b -> FS a b -> FS a b
-new = undefined
+new p f s = untar(w)
+  where
+    z = tar s
+    w = [(p,f)]++z
 
 cp :: (Eq a) => Path a -> Path a -> FS a b -> FS a b
 cp = undefined
