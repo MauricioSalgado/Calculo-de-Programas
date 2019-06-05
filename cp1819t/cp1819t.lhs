@@ -115,11 +115,11 @@
 \begin{tabular}{ll}
 \textbf{Grupo} nr. & 99 (preencher)
 \\\hline
-a11111 & Nome1 (preencher)
+a79187 & Aventino Menezes
 \\
-a22222 & Nome2 (preencher)
+a70697 & Mário Santos
 \\
-a33333 & Nome3 (preencher)
+a71407 & Maurício Salgado
 \end{tabular}
 \end{center}
 
@@ -1158,7 +1158,6 @@ outras funções auxiliares que sejam necessárias.
 
 \begin{code}
 
-uncurryNum f (op,(e1,e2)) = f e1 op e2
 
 inExpr :: Either Int (Op,(Expr,Expr)) -> Expr
 inExpr = either Num (uncurryNum(Bop))
@@ -1166,6 +1165,8 @@ inExpr = either Num (uncurryNum(Bop))
 outExpr :: Expr -> Either Int (Op,(Expr,Expr))
 outExpr (Num x) = i1 x
 outExpr (Bop e1 op e2) = i2 (op,(e1,e2))
+
+uncurryNum f (op,(e1,e2)) = f e1 op e2
 
 recExpr f = baseExpr id f
 
@@ -1186,7 +1187,9 @@ mycalc (Op op, x) | op == "+" = fromIntegral $ add $ toInt x
 
 toInt (x,y) = (toInteger x, toInteger y)
 
-auxShow1 (Op op, (x,y)) = "("++x++op++y++")"
+
+
+show' = cataExpr(either auxInt' auxShow')
 
 auxShow' (Op op, (x,y)) | length(readBinOp x) == 0 && length(readBinOp y) == 0 = x++op++y
                         | length(readBinOp x) == 0 && length(readBinOp y) /= 0 = x++op++"("++y++")"
@@ -1196,16 +1199,14 @@ auxShow' (Op op, (x,y)) | length(readBinOp x) == 0 && length(readBinOp y) == 0 =
 auxInt' x | x >= 0 = show x
           | otherwise = "("++(show x)++")"
 
-show' = cataExpr(either auxInt' auxShow')
-
---readExp' = anaExpr g
-cose' x = prj . for loop init where
-  init = (1, -x^2 / 2, 12, 18)
-  loop(c,h,s,m) = (h + c, -x^2 / s * h, s + m, 8 + m)
-  prj(c,h,s,m) = c
 
 compile :: String -> Codigo
-compile = undefined
+compile = cataExpr(either single join) . p1 . head . readExp
+    where single x = ["PUSH " ++ (show x)]
+          join (Op op, (x,y)) | op == "+" = x++y++["ADD"]
+                              | op == "/" = x++y++["DIV"]
+                              | op == "*" = x++y++["MUL"]
+                              | otherwise = x++y++["SUB"]
 \end{code}
 
 \subsection*{Problema 2}
@@ -1233,15 +1234,14 @@ hyloL2D f g = cataL2D f . anaL2D g
 
 collectLeafs = cataL2D (either (singl . swap) (conc . p2))
 
-mapCaixa f = cataL2D(inL2D . (f -|- id >< (id >< id)))
+\end{code}
 
-mapTipos f = cataL2D(inL2D . (id -|- f >< (id >< id)))
+A seguinte função calcula a dimensão da Bounding Box de um L2D. Servirá para, na calculOrigins, à medida que vamos construindo, ir calculando as dimensões das dos L2D que estão a ser agregados para aplicar um deslocamento da origem com base no tipo.
 
-mapL2D f = cataL2D(inL2D . baseL2D f id)
+\begin{code}
 
 dimen :: X Caixa Tipo -> (Float, Float)
 dimen = cataL2D(either ((fromIntegral >< fromIntegral) . p1) (uncurry calcul))
-
 
 calcul :: Tipo -> ((Float, Float),(Float, Float)) -> (Float, Float)
 calcul H ((x1,y1),(x2,y2)) = (x1+x2, max y1 y2)
@@ -1285,9 +1285,6 @@ maiorDimen (a,b) (c,d) = if (a+b) >= (c+d) then True else False
 calc :: Tipo -> Origem -> (Float, Float) -> Origem
 calc = undefined
 
-myimage :: (L2D,Origem)
-myimage = ((Comp Hb (Unid ((200,200),("yo", col_blue))) (Unid ((300,400),("man", col_green)))) , (0.0,0.0))
-
 caixasAndOrigin2Pict = (G.pictures) . map (parseCrCaixa . (id >< caixaToFloat)) . collectLeafs . calcOrigins where
    caixaToFloat ((x,y),(t, c)) = ((fromIntegral x, fromIntegral y),(t, c))
    parseCrCaixa (o,((x,y),(t, c))) = crCaixa o x y t c
@@ -1302,17 +1299,20 @@ cos' x = prj . for loop init where
    prj(c,h,s,m) = c
 \end{code}
 
+Valorização:
+
+\begin{spec}
+double myCos(double x, int n){
+	double c=1,g=12,k=18;double f=(-(pow(x,2)/2));int i;
+	for(i=0; i<n+1; i++) {c+=f;f*=(-(pow(x,2)/g));g+=k;k+=8;}
+	return c;
+}
+\end{spec}
+
 
 \subsection*{Problema 4}
 Triologia ``ana-cata-hilo":
 \begin{code}
-
-filesys = FS [("f1", File "Ola"),
-   ("d1", Dir (FS [("f2", File "Ole"),
-                   ("f3", File "Ole")
-                  ])),
-                  ("d1", Dir(FS [("d5", Dir(FS [("f6", File "TESTE")]))]))
-  ]
 
 outFS (FS l) = map(id >< outNode) l
 
@@ -1335,8 +1335,7 @@ Outras funções pedidas:
 check :: (Eq a) => FS a b -> Bool
 check = cataFS(g)
   where
-      g = unc . ((not . nr) >< cataList(either false unc)) . (split (map(p1)) (map((either false id) . p2)))
-      unc = uncurry(||)
+      g = uncurry(||) . ((not . nr) >< or) . (split (map(p1)) (map((either false id) . p2)))
 
 tar :: FS a b -> [(Path a, b)]
 tar = cataFS(g)
@@ -1351,13 +1350,13 @@ untar = joinDupDirs. anaFS(map g)
             | otherwise = (head(x), i2(singl((tail(x), y))))
 
 find :: (Eq a) => a -> FS a b -> [Path a]
-find x y =  filter(\z -> last z == x ). map(p1) $ tar y
+find x y =  filter(\z -> last z == x ) . map(p1) $ tar y
 
 new :: (Eq a) => Path a -> b -> FS a b -> FS a b
 new p f s = untar(w)
   where
     z = tar s
-    w = [(p,f)]++z
+    w = (p,f):z
 
 cp :: (Eq a) => Path a -> Path a -> FS a b -> FS a b
 cp = undefined
