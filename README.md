@@ -1,3 +1,3 @@
-# Calculo-de-Programas
+# Calculo de Pogramas
 
 Self explanatory 
